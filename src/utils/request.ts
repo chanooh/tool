@@ -16,13 +16,30 @@ export class Request {
   }
 
   async broadcastTx(rawtx: string) {
-    const url = `${this.unisatWalletUri}/v5/tx/broadcast`;
-    const res = await axios.post(url, { rawtx }, {
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (res.data?.code === 0) {
-      return res.data.data.txid;
+    const url = 'https://mempool.space/api/tx';
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        body: rawtx,
+        headers: {
+          'Content-Type': 'text/plain', // Mempool.space expects raw transaction hex as plain text
+        },
+      });
+  
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`广播失败: ${errorText || res.statusText}`);
+      }
+  
+      const txid = await res.text(); // Mempool.space returns the transaction ID as plain text
+      console.log('✅ 交易广播成功，txid:', txid);
+      return txid;
+    } catch (error) {
+      console.error('❌ 交易广播失败:', error);
+      if (error instanceof Error) {
+        throw new Error(`广播失败: ${error.message}`);
+      }
+      throw new Error('广播失败: 未知错误');
     }
-    throw new Error(res.data?.msg || '广播失败');
   }
 }
