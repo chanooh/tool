@@ -3,12 +3,11 @@ import * as bip39 from 'bip39';
 import * as bip32 from 'bip32';
 import * as ecc from 'tiny-secp256k1';
 import { ECPairFactory, ECPairInterface } from 'ecpair';
-import axios from 'axios';
-// import pLimit from 'p-limit'; // 如需并发控制，可启用
+import { getNetworkConfig, NetworkType } from './config';
+import { Request } from './request';
 
 bitcoin.initEccLib(ecc);
 const ECPair = ECPairFactory(ecc);
-const network = bitcoin.networks.testnet;
 
 export interface UTXO {
   tx_hash: string;
@@ -17,26 +16,8 @@ export interface UTXO {
   script: string;
 }
 
-// 缓存 tx script
-const scriptCache: { [key: string]: string } = {};
-
-// 可选并发控制（一次最多3个请求）
-// const limit = pLimit(3);
-
-async function getCachedScript(txid: string, index: number): Promise<string> {
-  const key = `${txid}:${index}`;
-  if (scriptCache[key]) return scriptCache[key];
-  const res = await axios.get(`https://api.blockcypher.com/v1/btc/test3/txs/${txid}`);
-  const script = res.data.outputs[index].script;
-  scriptCache[key] = script;
-  return script;
-}
-
-export async function getBTCAccount(input: string): Promise<{
-  address: string;
-  keyPair: ECPairInterface;
-  xOnlyPubkey: Buffer;
-}> {
+export async function getBTCAccount(input: string, networkType: NetworkType) {
+  const { network } = getNetworkConfig(networkType);
   let keyPair: ECPairInterface;
   let xOnlyPubkey: Buffer;
 
@@ -53,26 +34,21 @@ export async function getBTCAccount(input: string): Promise<{
   }
 
   const { address } = bitcoin.payments.p2tr({ internalPubkey: xOnlyPubkey, network });
-  if (!address) throw new Error('Address generation failed');
+  if (!address) throw new Error('生成地址失败');
   return { address, keyPair, xOnlyPubkey };
 }
 
-export async function fetchUTXOs(address: string): Promise<UTXO[]> {
-  const res = await axios.get(`https://api.blockcypher.com/v1/btc/test3/addrs/${address}?unspentOnly=true`);
-  const utxos = res.data.txrefs || [];
+export async function fetchUTXOs(address: string, networkType: NetworkType): Promise<UTXO[]> {
+  const config = getNetworkConfig(networkType);
+  const api = new Request(config.unisatWalletUri, config.mempoolUri);
+  const utxosRaw = await api.getUTXO(address);
 
-  // 提前获取 script 并缓存，避免重复请求
-  const enriched: UTXO[] = await Promise.all(utxos.map(async (utxo: any) => {
-    const script = await getCachedScript(utxo.tx_hash, utxo.tx_output_n);
-    return {
-      tx_hash: utxo.tx_hash,
-      tx_output_n: utxo.tx_output_n,
-      value: utxo.value,
-      script,
-    };
+  return utxosRaw.map((u: any) => ({
+    tx_hash: u.txid,
+    tx_output_n: u.vout,
+    value: u.satoshis,
+    script: u.scriptPk || '',
   }));
-
-  return enriched;
 }
 
 export async function mergeSelectedUTXOs(params: {
@@ -81,66 +57,90 @@ export async function mergeSelectedUTXOs(params: {
   utxos: UTXO[],
   satsPerVbyte: number,
   targetAddress: string,
+  networkType: NetworkType,
 }): Promise<string> {
-  const { keyPair, xOnlyPubkey, utxos, satsPerVbyte, targetAddress } = params;
-  const psbt = new bitcoin.Psbt({ network });
+  const { keyPair, xOnlyPubkey, utxos, satsPerVbyte, targetAddress, networkType } = params;
+  const { network, unisatWalletUri, mempoolUri } = getNetworkConfig(networkType);
+  const request = new Request(unisatWalletUri, mempoolUri);
+
+  // --- Phase 1: 构造估算交易 ---
+  const psbtEstimate = new bitcoin.Psbt({ network });
   let totalInputValue = 0;
 
   for (const utxo of utxos) {
-    const script = utxo.script || await getCachedScript(utxo.tx_hash, utxo.tx_output_n);
-    totalInputValue += utxo.value;
-    psbt.addInput({
+    psbtEstimate.addInput({
       hash: utxo.tx_hash,
       index: utxo.tx_output_n,
       sequence: 0xfffffffd,
       witnessUtxo: {
-        script: Buffer.from(script, 'hex'),
         value: utxo.value,
+        script: Buffer.from(utxo.script, 'hex'),
       },
       tapInternalKey: xOnlyPubkey,
     });
+    totalInputValue += utxo.value;
   }
 
-  psbt.addOutput({ address: targetAddress, value: totalInputValue });
+  // 暂时添加 placeholder 输出
+  psbtEstimate.addOutput({
+    address: targetAddress,
+    value: totalInputValue,
+  });
 
   const signer = keyPair.tweak(
-    bitcoin.crypto.taggedHash('TapTweak', xOnlyPubkey),
+    bitcoin.crypto.taggedHash('TapTweak', xOnlyPubkey)
   );
-  psbt.data.inputs.forEach((_, i) => psbt.signInput(i, signer));
-  psbt.finalizeAllInputs();
 
-  const vSize = psbt.extractTransaction().virtualSize();
-  const fee = Math.ceil(vSize * satsPerVbyte);
-  const finalValue = totalInputValue - fee;
-  if (finalValue <= 546) throw new Error("Dust output after fee");
+  psbtEstimate.data.inputs.forEach((_, i) => psbtEstimate.signInput(i, signer));
+  psbtEstimate.finalizeAllInputs();
 
-  // Rebuild tx with real output value
+  const estTx = psbtEstimate.extractTransaction();
+  const estVSize = estTx.virtualSize();
+  const fee = Math.round(estVSize * satsPerVbyte); // 精确四舍五入
+  const sendValue = totalInputValue - fee;
+
+  if (sendValue <= 546) throw new Error(`Dust output after fee: ${sendValue} sats`);
+
+  console.log(`--- Fee Estimation ---`);
+  console.log(`Total input: ${totalInputValue} sats`);
+  console.log(`Estimated vSize: ${estVSize} vBytes`);
+  console.log(`Requested fee rate: ${satsPerVbyte} sats/vByte`);
+  console.log(`Calculated fee: ${fee} sats`);
+  console.log(`Send value: ${sendValue} sats`);
+
+  // --- Phase 2: 构造实际交易 ---
   const finalPsbt = new bitcoin.Psbt({ network });
+
   for (const utxo of utxos) {
-    const script = utxo.script || await getCachedScript(utxo.tx_hash, utxo.tx_output_n);
     finalPsbt.addInput({
       hash: utxo.tx_hash,
       index: utxo.tx_output_n,
       sequence: 0xfffffffd,
       witnessUtxo: {
-        script: Buffer.from(script, 'hex'),
         value: utxo.value,
+        script: Buffer.from(utxo.script, 'hex'),
       },
       tapInternalKey: xOnlyPubkey,
     });
   }
 
-  finalPsbt.addOutput({ address: targetAddress, value: finalValue });
+  finalPsbt.addOutput({
+    address: targetAddress,
+    value: sendValue,
+  });
+
   finalPsbt.data.inputs.forEach((_, i) => finalPsbt.signInput(i, signer));
   finalPsbt.finalizeAllInputs();
 
-  const txHex = finalPsbt.extractTransaction().toHex();
+  const finalTx = finalPsbt.extractTransaction();
+  const realVSize = finalTx.virtualSize();
+  const realFeeRate = parseFloat((fee / realVSize).toFixed(2));
 
-  const res = await axios.post(
-    `https://api.blockcypher.com/v1/btc/test3/txs/push`,
-    { tx: txHex },
-    { headers: { 'Content-Type': 'application/json' } }
-  );
+  console.log(`--- Final Transaction ---`);
+  console.log(`Final vSize: ${realVSize} vBytes`);
+  console.log(`Actual fee rate: ${realFeeRate} sats/vByte`);
 
-  return res.data.tx && res.data.tx.hash;
+  const txHex = finalTx.toHex();
+  const txid = await request.broadcastTx(txHex);
+  return txid;
 }

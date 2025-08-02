@@ -1,9 +1,9 @@
-// src/pages/BTCMerge/BTCMerge.tsx
 import { useState } from 'react';
-import './BTCMerge.css';
 import { getBTCAccount, fetchUTXOs, mergeSelectedUTXOs, UTXO } from '../../utils/bitcoin';
+import { NetworkType, networkConfigs } from '../../utils/config';
 
 export default function BTCMerge() {
+  const [networkType, setNetworkType] = useState<NetworkType>('testnet');
   const [inputKey, setInputKey] = useState('');
   const [utxos, setUtxos] = useState<UTXO[]>([]);
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
@@ -18,8 +18,8 @@ export default function BTCMerge() {
     try {
       setError('');
       setTxid('');
-      const { address, keyPair } = await getBTCAccount(inputKey);
-      const fetched = await fetchUTXOs(address);
+      const { address } = await getBTCAccount(inputKey, networkType);
+      const fetched = await fetchUTXOs(address, networkType);
       setUtxos(fetched);
       setAddress(address);
     } catch (err: any) {
@@ -28,9 +28,7 @@ export default function BTCMerge() {
   };
 
   const toggleSelect = (i: number) => {
-    setSelectedIndexes((prev) =>
-      prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]
-    );
+    setSelectedIndexes(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
   };
 
   const handleMerge = async () => {
@@ -38,14 +36,15 @@ export default function BTCMerge() {
       setLoading(true);
       setError('');
       setTxid('');
-      const { keyPair, xOnlyPubkey } = await getBTCAccount(inputKey);
+      const { keyPair, xOnlyPubkey } = await getBTCAccount(inputKey, networkType);
       const selected = selectedIndexes.map(i => utxos[i]);
       const tx = await mergeSelectedUTXOs({
         keyPair,
         xOnlyPubkey,
         utxos: selected,
-        satsPerVbyte: parseInt(satsPerVbyte),
+        satsPerVbyte: parseFloat(satsPerVbyte),
         targetAddress,
+        networkType,
       });
       setTxid(tx);
     } catch (e: any) {
@@ -58,6 +57,15 @@ export default function BTCMerge() {
   return (
     <div className="btc-container">
       <h2>比特币 UTXO 合并工具</h2>
+
+      <div className="input-group">
+        <label>选择网络</label>
+        <select value={networkType} onChange={e => setNetworkType(e.target.value as NetworkType)}>
+          {Object.keys(networkConfigs).map(n => (
+            <option key={n} value={n}>{n}</option>
+          ))}
+        </select>
+      </div>
 
       <div className="input-group">
         <label>助记词 或 私钥(WIF)</label>
@@ -81,11 +89,16 @@ export default function BTCMerge() {
 
       <div className="input-group">
         <label>手续费（sats/vByte）</label>
-        <input type="number" value={satsPerVbyte} onChange={e => setSatsPerVbyte(e.target.value)} />
+        <input
+          type="number"
+          step="0.01" // ✅ 显式允许输入小数
+          value={satsPerVbyte}
+          onChange={e => setSatsPerVbyte(e.target.value)}
+        />
       </div>
 
       <div className="input-group">
-        <label>收款地址（合并后资金将发往此地址）</label>
+        <label>收款地址</label>
         <input value={targetAddress} onChange={e => setTargetAddress(e.target.value)} />
       </div>
 
@@ -93,7 +106,13 @@ export default function BTCMerge() {
         {loading ? '合并中...' : '开始合并'}
       </button>
 
-      {txid && <p>✅ 成功广播: <a href={`https://mempool.space/testnet/tx/${txid}`} target="_blank">{txid}</a></p>}
+      {txid && (
+        <p>✅ 成功广播: 
+          <a href={`${networkConfigs[networkType].mempoolUri}/tx/${txid}`} target="_blank" rel="noreferrer">
+            {txid}
+          </a>
+        </p>
+      )}
       {error && <p style={{ color: 'red' }}>❌ {error}</p>}
     </div>
   );
