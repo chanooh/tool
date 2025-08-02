@@ -1,41 +1,51 @@
-import { ethers, Wallet } from "ethers";
+import { ethers, Wallet, Contract } from "ethers";
 
 interface TransferParams {
-  wallet: Wallet;                  // 已连接provider的钱包实例
-  toAddress: string;               // 接收地址
-  amountInEther: number | string;   // 转账金额(支持字符串或数字)
-  hexData?: string;                 // 可选十六进制数据
+  wallet: Wallet;
+  toAddress: string;
+  amountInEther: number | string;
+  hexData?: string;
 }
+
+interface ApproveTokenParams {
+  wallet: Wallet;
+  tokenAddress: string;
+  spenderAddress: string;
+}
+
+interface EncodeFunctionDataParams {
+  abi: any[];
+  functionName: string;
+  parameters: Array<{
+    type: string;
+    value: string;
+    unit?: string;
+  }>;
+}
+
+const ERC20_ABI = [
+  "function approve(address spender, uint256 amount) public returns (bool)"
+];
 
 async function transfer(params: TransferParams): Promise<ethers.TransactionResponse> {
   const { wallet, toAddress, amountInEther, hexData = "0x" } = params;
-
-  // 类型安全校验
   if (!ethers.isAddress(toAddress)) {
     throw new Error("Invalid recipient address");
   }
-  
   if (!ethers.isHexString(hexData)) {
     throw new Error("Hex data must be a valid 0x-prefixed string");
   }
-
-  // 单位转换（支持字符串和数字输入）
   const value = ethers.parseEther(
     typeof amountInEther === "string" 
       ? amountInEther 
       : amountInEther.toString()
   );
-
-  // 构造交易对象
   const tx = {
     to: toAddress,
     value,
     data: hexData,
-    // 可在此扩展 gasLimit/gasPrice 等参数
   };
-
   try {
-    // 发送交易（自动处理nonce和签名）
     const transaction = await wallet.sendTransaction(tx);
     console.log(`Transaction broadcasted: ${transaction.hash}`);
     return transaction;
@@ -47,5 +57,71 @@ async function transfer(params: TransferParams): Promise<ethers.TransactionRespo
   }
 }
 
-export { transfer };
-export type { TransferParams };
+async function approveToken(params: ApproveTokenParams): Promise<ethers.TransactionResponse> {
+  const { wallet, tokenAddress, spenderAddress } = params;
+  if (!ethers.isAddress(tokenAddress)) {
+    throw new Error("Invalid token address");
+  }
+  if (!ethers.isAddress(spenderAddress)) {
+    throw new Error("Invalid spender address");
+  }
+  const contract = new ethers.Contract(tokenAddress, ERC20_ABI, wallet);
+  const maxUint256 = ethers.MaxUint256;
+  try {
+    const tx = await contract.approve(spenderAddress, maxUint256);
+    console.log(`Approval transaction broadcasted: ${tx.hash}`);
+    return tx;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Approval failed: ${error.message}`);
+    }
+    throw new Error("Approval failed with unknown error");
+  }
+}
+
+function encodeFunctionData(params: EncodeFunctionDataParams): string {
+  const { abi, functionName, parameters } = params;
+  try {
+    const iface = new ethers.Interface(abi);
+    const processedParams = parameters.map(param => {
+      const { type, value, unit } = param;
+      if (type === 'address') {
+        if (!ethers.isAddress(value)) {
+          throw new Error(`Invalid address: ${value}`);
+        }
+        return value;
+      } else if (type === 'bool') {
+        if (value.toLowerCase() !== 'true' && value.toLowerCase() !== 'false') {
+          throw new Error(`Invalid boolean value: ${value}`);
+        }
+        return value.toLowerCase() === 'true';
+      } else if (type === 'string') {
+        return value;
+      } else if (['uint256', 'int256'].includes(type)) {
+        if (unit === 'datetime') {
+          const timestamp = Date.parse(value) / 1000;
+          if (isNaN(timestamp)) {
+            throw new Error(`Invalid datetime format: ${value}`);
+          }
+          return BigInt(timestamp).toString();
+        } else if (unit === 'ether') {
+          return ethers.parseEther(value).toString();
+        } else if (unit === 'gwei') {
+          return ethers.parseUnits(value, 'gwei').toString();
+        } else {
+          return ethers.parseUnits(value || '0', 'wei').toString();
+        }
+      }
+      throw new Error(`Unsupported parameter type: ${type}`);
+    });
+    return iface.encodeFunctionData(functionName, processedParams);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Encoding failed: ${error.message}`);
+    }
+    throw new Error("Encoding failed with unknown error");
+  }
+}
+
+export { transfer, approveToken, encodeFunctionData };
+export type { TransferParams, ApproveTokenParams, EncodeFunctionDataParams };

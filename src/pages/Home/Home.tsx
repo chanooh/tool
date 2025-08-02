@@ -1,8 +1,8 @@
-import './Home.css'
+import './Home.css';
 import { Navbar } from '../../components/Navbar/Navbar';
 import { useState } from 'react';
 import { ethers } from 'ethers';
-import { transfer } from '../../utils';
+import { transfer, approveToken, TransferParams, ApproveTokenParams } from '../../utils';
 
 interface ChainConfig {
   rpc: string;
@@ -15,12 +15,28 @@ const PRESET_CHAINS: Record<string, ChainConfig> = {
     chainId: 1
   },
   bsc: {
-    rpc: "https://bsc-dataseed.binance.org/",
+    rpc: "https://bsc-pokt.nodies.app",
     chainId: 56
   },
   base: {
     rpc: "https://mainnet.base.org",
     chainId: 8453
+  }
+};
+
+// Token contract addresses for different chains
+const TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
+  eth: {
+    USDT: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+    USDC: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+  },
+  bsc: {
+    USDT: '0x55d398326f99059ff775485246999027b3197955',
+    USDC: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d'
+  },
+  base: {
+    USDT: '0xfde4c96c8593536e31f229ea8f37b2ada2699bb2',
+    USDC: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
   }
 };
 
@@ -43,6 +59,9 @@ export default function Home() {
   const [customChainId, setCustomChainId] = useState('');
   const [tasks, setTasks] = useState<TransferTask[]>([]);
   const [mode, setMode] = useState<'fromOneToMany' | 'fromManyToOne'>('fromOneToMany');
+  const [tokenType, setTokenType] = useState<'USDT' | 'USDC' | 'custom'>('USDT');
+  const [customTokenAddress, setCustomTokenAddress] = useState('');
+  const [spenderAddress, setSpenderAddress] = useState('');
 
   const handleChainChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value as typeof selectedChain;
@@ -90,6 +109,21 @@ export default function Home() {
       throw new Error('Invalid amount');
     }
 
+    if (chainConfig.rpc === '' || chainConfig.chainId <= 0) {
+      throw new Error('Invalid chain configuration');
+    }
+  };
+
+  const validateApprovalInputs = () => {
+    if (!privateKey.match(/^0x[a-fA-F0-9]{64}$/)) {
+      throw new Error('Invalid private key format');
+    }
+    if (!ethers.isAddress(spenderAddress)) {
+      throw new Error('Invalid spender address');
+    }
+    if (tokenType === 'custom' && !ethers.isAddress(customTokenAddress)) {
+      throw new Error('Invalid custom token address');
+    }
     if (chainConfig.rpc === '' || chainConfig.chainId <= 0) {
       throw new Error('Invalid chain configuration');
     }
@@ -175,6 +209,43 @@ export default function Home() {
 
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Transfer failed');
+    }
+  };
+
+  const handleTokenApproval = async () => {
+    try {
+      validateApprovalInputs();
+      setTasks([]);
+
+      const provider = new ethers.JsonRpcProvider(chainConfig.rpc);
+      const wallet = new ethers.Wallet(privateKey, provider);
+
+      const tokenAddress = tokenType === 'custom' 
+        ? customTokenAddress 
+        : TOKEN_ADDRESSES[selectedChain]?.[tokenType];
+
+      if (!tokenAddress && tokenType !== 'custom') {
+        throw new Error(`Token ${tokenType} not supported on ${selectedChain}`);
+      }
+
+      setTasks([{ status: 'pending' }]);
+
+      try {
+        setTasks([{ status: 'processing' }]);
+        const tx = await approveToken({
+          wallet,
+          tokenAddress,
+          spenderAddress
+        });
+        setTasks([{ status: 'success', hash: tx.hash }]);
+      } catch (err) {
+        setTasks([{
+          status: 'failed',
+          error: err instanceof Error ? err.message : 'Unknown error'
+        }]);
+      }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Approval failed');
     }
   };
 
@@ -308,6 +379,64 @@ export default function Home() {
           </button>
         </div>
 
+        <div className='batch-section'>
+          <h2>代币无限授权</h2>
+          <div className='params-group'>
+            <div className='input-group'>
+              <label>发送方私钥:</label>
+              <input
+                type="password"
+                value={privateKey}
+                onChange={(e) => setPrivateKey(e.target.value)}
+                placeholder="0x开头64位"
+              />
+            </div>
+
+            <div className='input-group'>
+              <label>代币类型:</label>
+              <select
+                value={tokenType}
+                onChange={(e) => setTokenType(e.target.value as any)}
+                className="chain-select"
+              >
+                <option value="USDT">USDT</option>
+                <option value="USDC">USDC</option>
+                <option value="custom">自定义代币</option>
+              </select>
+            </div>
+
+            {tokenType === 'custom' && (
+              <div className='input-group'>
+                <label>自定义代币地址:</label>
+                <input
+                  value={customTokenAddress}
+                  onChange={(e) => setCustomTokenAddress(e.target.value)}
+                  placeholder="0x..."
+                />
+              </div>
+            )}
+
+            <div className='input-group'>
+              <label>授权目标合约地址:</label>
+              <input
+                value={spenderAddress}
+                onChange={(e) => setSpenderAddress(e.target.value)}
+                placeholder="0x..."
+              />
+            </div>
+          </div>
+
+          <button
+            className='submit-btn'
+            onClick={handleTokenApproval}
+            disabled={tasks.some(t => t.status === 'processing')}
+          >
+            {tasks.some(t => t.status === 'processing')
+              ? '处理中...'
+              : '授权代币'}
+          </button>
+        </div>
+
         <div className='task-list'>
           {tasks.map((task, index) => (
             <div key={index} className={`task-item ${task.status}`}>
@@ -315,7 +444,7 @@ export default function Home() {
               <div className='task-status'>
                 {task.status === 'success' && task.hash && (
                   <a 
-                    href={`https://etherscan.io/tx/${task.hash}`}
+                    href={`https://${selectedChain === 'bsc' ? 'bscscan.com' : selectedChain === 'base' ? 'basescan.org' : 'etherscan.io'}/tx/${task.hash}`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
