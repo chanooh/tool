@@ -10,6 +10,7 @@ export default defineConfig({
     wasm(),
     topLevelAwait(), // Add support for top-level await, useful for WASM modules
   ],
+  base: './',
   resolve: {
     alias: {
       stream: 'stream-browserify',
