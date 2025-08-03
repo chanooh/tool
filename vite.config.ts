@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [
     react(),
     wasm(),
-    topLevelAwait(), // Add support for top-level await, useful for WASM modules
+    topLevelAwait(),
   ],
   base: './',
   resolve: {
@@ -16,7 +16,6 @@ export default defineConfig({
       stream: 'stream-browserify',
       crypto: 'crypto-browserify',
       buffer: 'buffer',
-      // Ensure util is polyfilled, as some Node.js modules rely on it
       util: 'util',
     },
   },
@@ -31,11 +30,11 @@ export default defineConfig({
       'stream-browserify',
       'buffer',
       'util',
-    ], // Pre-bundle dependencies to avoid runtime issues
+    ],
     esbuildOptions: {
       define: {
         global: 'globalThis',
-        'process.env': '{}', // Ensure process.env is defined
+        'process.env': '{}',
       },
       plugins: [
         NodeGlobalsPolyfillPlugin({
@@ -46,9 +45,25 @@ export default defineConfig({
     },
   },
   build: {
-    target: 'esnext', // Ensure modern ES modules for WASM compatibility
+    target: 'esnext',
     rollupOptions: {
-      external: [], // Ensure no dependencies are externalized unexpectedly
+      external: [],
+      plugins: [
+        // Ensure buffer is correctly resolved in production
+        {
+          name: 'buffer-polyfill',
+          resolveId(id) {
+            if (id === 'buffer') {
+              return id;
+            }
+          },
+          load(id) {
+            if (id === 'buffer') {
+              return 'export { Buffer } from "buffer";';
+            }
+          },
+        },
+      ],
     },
   },
 });
