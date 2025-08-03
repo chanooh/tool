@@ -9,6 +9,24 @@ export default defineConfig({
     react(),
     wasm(),
     topLevelAwait(),
+    {
+      name: 'inject-buffer',
+      transformIndexHtml: {
+        enforce: 'pre',
+        transform() {
+          return [
+            {
+              tag: 'script',
+              attrs: { type: 'module' },
+              children: `
+                import { Buffer } from 'buffer';
+                window.Buffer = Buffer;
+              `,
+            },
+          ];
+        },
+      },
+    },
   ],
   base: './',
   resolve: {
