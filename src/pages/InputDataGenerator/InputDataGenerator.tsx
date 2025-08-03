@@ -11,9 +11,15 @@ interface Parameter {
 }
 
 export default function InputDataGenerator() {
-  const [abiInput, setAbiInput] = useState('');
-  const [functionName, setFunctionName] = useState('');
-  const [parameters, setParameters] = useState<Parameter[]>([{ type: 'uint256', value: '', unit: 'wei' }]);
+  const [abiInput, setAbiInput] = useState('["function buy(uint256 _id, address _user, uint256 _amount, uint256 _tierIndex)"]');
+  const [functionName, setFunctionName] = useState('buy');
+  const [parameters, setParameters] = useState<Parameter[]>([
+    { type: 'uint256', value: '300', unit: 'ether' },
+    { type: 'address', value: '' },
+    { type: 'uint256', value: '0', unit: 'wei' },
+    { type: 'uint256', value: '2025-08-19 18:24:20', unit: 'datetime' }
+  ]);
+  
   const [generatedInputData, setGeneratedInputData] = useState('');
   const [inputDataError, setInputDataError] = useState('');
 
