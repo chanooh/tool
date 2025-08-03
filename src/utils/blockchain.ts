@@ -1,4 +1,4 @@
-import { ethers, Wallet, Contract } from "ethers";
+import { ethers, Wallet } from "ethers";
 
 interface TransferParams {
   wallet: Wallet;

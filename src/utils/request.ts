@@ -16,8 +16,8 @@ export class Request {
   // }
 
   async getUTXO(address: string) {
-    const normalUrl = `https://open-api.unisat.io/v1/indexer/address/${address}/utxo-data?cursor=0&size=500`;
-    const inscriptionUrl = `https://open-api.unisat.io/v1/indexer/address/${address}/inscription-utxo-data?cursor=0&size=500`;
+    const normalUrl = `${this.unisatWalletUri}/v1/indexer/address/${address}/utxo-data?cursor=0&size=500`;
+    const inscriptionUrl = `${this.unisatWalletUri}/v1/indexer/address/${address}/inscription-utxo-data?cursor=0&size=500`;
   
     try {
       const [normalRes, insRes] = await Promise.all([
@@ -47,7 +47,7 @@ export class Request {
   
 
   async broadcastTx(rawtx: string) {
-    const url = 'https://mempool.space/api/tx';
+    const url = `${this.mempoolUri}/api/tx`;
     try {
       const res = await fetch(url, {
         method: 'POST',

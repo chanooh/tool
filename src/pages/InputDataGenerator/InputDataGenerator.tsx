@@ -1,7 +1,7 @@
 import './InputDataGenerator.css';
 import { Navbar } from '../../components/Navbar/Navbar';
 import { useState } from 'react';
-import { ethers } from 'ethers';
+// import { ethers } from 'ethers';
 import { encodeFunctionData, EncodeFunctionDataParams } from '../../utils';
 
 interface Parameter {

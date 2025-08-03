@@ -1,14 +1,14 @@
 import "./Navbar.css";
-import { useState } from "react";
+// import { useState } from "react";
 import { Link } from "react-router-dom";
 
 export const Navbar = () => {
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
-  const menus = {
-    evm: ['转账', '归集'],
-    sol: ['soon'],
-    sui: ['soon']
-  };
+  // const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  // const menus = {
+  //   evm: ['转账', '归集'],
+  //   sol: ['soon'],
+  //   sui: ['soon']
+  // };
 
   return (
     <div className="nav">

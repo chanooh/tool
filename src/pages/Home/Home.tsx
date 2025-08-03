@@ -2,7 +2,7 @@ import './Home.css';
 import { Navbar } from '../../components/Navbar/Navbar';
 import { useState } from 'react';
 import { ethers } from 'ethers';
-import { transfer, approveToken, TransferParams, ApproveTokenParams } from '../../utils';
+import { transfer, approveToken } from '../../utils';
 
 interface ChainConfig {
   rpc: string;
