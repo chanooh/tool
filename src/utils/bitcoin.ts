@@ -100,7 +100,7 @@ export async function fetchUTXOs(address: string, networkType: NetworkType): Pro
   return utxosRaw.map((u: any) => ({
     tx_hash: u.txid,
     tx_output_n: u.vout,
-    value: u.satoshis,
+    value: u.satoshi,
     script: u.scriptPk || '',
   }));
 }

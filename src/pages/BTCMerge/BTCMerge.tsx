@@ -7,7 +7,7 @@ export default function BTCMerge() {
   const [inputKey, setInputKey] = useState('');
   const [utxos, setUtxos] = useState<UTXO[]>([]);
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
-  const [satsPerVbyte, setSatsPerVbyte] = useState('100');
+  const [satsPerVbyte, setSatsPerVbyte] = useState('1');
   const [targetAddress, setTargetAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [txid, setTxid] = useState('');
