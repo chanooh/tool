@@ -214,3 +214,143 @@ export async function mergeSelectedUTXOs(params: {
 
   return txid;
 }
+
+export async function splitSelectedUTXOs(params: {
+  keyPair: ECPairInterface;
+  xOnlyPubkey?: Buffer;
+  utxos: UTXO[];
+  outputs: { address: string; value: number }[];
+  satsPerVbyte: number;
+  changeAddress: string;
+  networkType: NetworkType;
+  addressType: 'p2wpkh' | 'p2tr';
+}): Promise<string> {
+  const {
+    keyPair,
+    xOnlyPubkey,
+    utxos,
+    outputs,
+    satsPerVbyte,
+    changeAddress,
+    networkType,
+    addressType,
+  } = params;
+
+  const { network, unisatWalletUri, mempoolUri } = getNetworkConfig(networkType);
+  const request = new Request(unisatWalletUri, mempoolUri);
+
+  // === Phase 1: 构造估算交易 ===
+  const psbtEstimate = new bitcoin.Psbt({ network });
+  let totalInputValue = 0;
+
+  for (const utxo of utxos) {
+    const input: any = {
+      hash: utxo.tx_hash,
+      index: utxo.tx_output_n,
+      sequence: 0xfffffffd,
+      witnessUtxo: {
+        value: utxo.value,
+        script: Buffer.from(utxo.script, 'hex'),
+      },
+    };
+
+    if (addressType === 'p2tr') {
+      if (!xOnlyPubkey) throw new Error('缺少 xOnlyPubkey（Taproot 公钥）');
+      input.tapInternalKey = xOnlyPubkey;
+    }
+
+    psbtEstimate.addInput(input);
+    totalInputValue += utxo.value;
+  }
+
+  for (const output of outputs) {
+    psbtEstimate.addOutput({
+      address: output.address,
+      value: output.value,
+    });
+  }
+
+  // 添加估算用找零（value=0）
+  psbtEstimate.addOutput({
+    address: changeAddress,
+    value: 0,
+  });
+
+  if (addressType === 'p2tr') {
+    const signer = keyPair.tweak(
+      bitcoin.crypto.taggedHash('TapTweak', xOnlyPubkey!)
+    );
+    psbtEstimate.data.inputs.forEach((_, i) => psbtEstimate.signInput(i, signer));
+  } else {
+    psbtEstimate.signAllInputs(keyPair);
+  }
+
+  psbtEstimate.finalizeAllInputs();
+
+  const estTx = psbtEstimate.extractTransaction(true);
+  const estVSize = estTx.virtualSize();
+  const fee = Math.round(estVSize * satsPerVbyte);
+
+  const outputSum = outputs.reduce((sum, o) => sum + o.value, 0);
+  const changeValue = totalInputValue - outputSum - fee;
+
+  if (changeValue < 0) {
+    throw new Error(`余额不足：输入=${totalInputValue}，输出=${outputSum}，fee=${fee}`);
+  }
+
+  if (changeValue > 0 && changeValue < 546) {
+    throw new Error(`找零金额 ${changeValue} 小于 Dust 阈值（546）`);
+  }
+
+  // === Phase 2: 构造最终交易 ===
+  const psbtFinal = new bitcoin.Psbt({ network });
+
+  for (const utxo of utxos) {
+    const input: any = {
+      hash: utxo.tx_hash,
+      index: utxo.tx_output_n,
+      sequence: 0xfffffffd,
+      witnessUtxo: {
+        value: utxo.value,
+        script: Buffer.from(utxo.script, 'hex'),
+      },
+    };
+
+    if (addressType === 'p2tr') {
+      input.tapInternalKey = xOnlyPubkey!;
+    }
+
+    psbtFinal.addInput(input);
+  }
+
+  for (const output of outputs) {
+    psbtFinal.addOutput({
+      address: output.address,
+      value: output.value,
+    });
+  }
+
+  if (changeValue >= 546) {
+    psbtFinal.addOutput({
+      address: changeAddress,
+      value: changeValue,
+    });
+  }
+
+  if (addressType === 'p2tr') {
+    const signer = keyPair.tweak(
+      bitcoin.crypto.taggedHash('TapTweak', xOnlyPubkey!)
+    );
+    psbtFinal.data.inputs.forEach((_, i) => psbtFinal.signInput(i, signer));
+  } else {
+    psbtFinal.signAllInputs(keyPair);
+  }
+
+  psbtFinal.finalizeAllInputs();
+
+  const finalTx = psbtFinal.extractTransaction();
+  const txHex = finalTx.toHex();
+  const txid = await request.broadcastTx(txHex);
+
+  return txid;
+}
