@@ -39,11 +39,11 @@ export default function BTCMerge() {
       setError('');
       setTxid('');
       const { keyPair, xOnlyPubkey } = await getBTCAccount(inputKey, networkType, addressType);
-      // const selected = selectedIndexes.map(i => utxos[i]);
+      const selected = selectedIndexes.map(i => utxos[i]);
       const tx = await mergeSelectedUTXOs({
         keyPair,
         xOnlyPubkey,
-        utxos,
+        utxos: selected,
         satsPerVbyte: parseFloat(satsPerVbyte),
         targetAddress,
         networkType,
