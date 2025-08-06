@@ -14,11 +14,13 @@ export default function BTCMerge() {
   const [error, setError] = useState('');
   const [address, setAddress] = useState('');
 
+  const [addressType, setAddressType] = useState<'p2tr' | 'p2wpkh'>('p2tr');
+
   const handleLoad = async () => {
     try {
       setError('');
       setTxid('');
-      const { address } = await getBTCAccount(inputKey, networkType);
+      const { address } = await getBTCAccount(inputKey, networkType, addressType);
       const fetched = await fetchUTXOs(address, networkType);
       setUtxos(fetched);
       setAddress(address);
@@ -36,15 +38,16 @@ export default function BTCMerge() {
       setLoading(true);
       setError('');
       setTxid('');
-      const { keyPair, xOnlyPubkey } = await getBTCAccount(inputKey, networkType);
+      const { keyPair, xOnlyPubkey } = await getBTCAccount(inputKey, networkType, addressType);
       const selected = selectedIndexes.map(i => utxos[i]);
       const tx = await mergeSelectedUTXOs({
         keyPair,
         xOnlyPubkey,
-        utxos: selected,
+        utxos,
         satsPerVbyte: parseFloat(satsPerVbyte),
         targetAddress,
         networkType,
+        addressType,
       });
       setTxid(tx);
     } catch (e: any) {
@@ -64,6 +67,11 @@ export default function BTCMerge() {
           {Object.keys(networkConfigs).map(n => (
             <option key={n} value={n}>{n}</option>
           ))}
+        </select>
+
+        <select value={addressType} onChange={e => setAddressType(e.target.value as 'p2tr' | 'p2wpkh')}>
+          <option value="p2tr">Taproot (bc1p)</option>
+          <option value="p2wpkh">SegWit (bc1q)</option>
         </select>
       </div>
 
@@ -107,7 +115,7 @@ export default function BTCMerge() {
       </button>
 
       {txid && (
-        <p>✅ 成功广播: 
+        <p>✅ 成功广播:
           <a href={`${networkConfigs[networkType].mempoolUri}/tx/${txid}`} target="_blank" rel="noreferrer">
             {txid}
           </a>

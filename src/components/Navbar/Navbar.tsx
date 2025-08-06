@@ -15,7 +15,8 @@ export const Navbar = () => {
       <div className="left">
         <div className="logo">Tool</div>
         <Link to="/" className="evm">Home</Link>
-        <Link to="/btc" className="evm">BTC Merge</Link>
+        <Link to="/utxomerge" className="evm">BTC Merge</Link>
+        <Link to="/utxosplit" className="evm">BTC Split</Link>
         <Link to="/inputdata" className="evm">Input Data Generator</Link>
         <div className="sol">sol</div>
         <div className="sui"></div>
