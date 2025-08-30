@@ -1,0 +1,202 @@
+/* Home.module.css */
+
+.main-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f0f2f5;
+}
+
+.content-wrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: #7f8c8d;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.section {
+  width: 100%;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 2.5rem;
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #34495e;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #ecf0f1;
+  padding-bottom: 1rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.5rem;
+}
+
+.label {
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 0.5rem;
+}
+
+.input,
+.textarea,
+.chain-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fdfdfd;
+  color: #333;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.input:focus,
+.textarea:focus,
+.chain-select:focus {
+  outline: none;
+  border-color: #00cc88;
+  box-shadow: 0 0 0 3px rgba(0, 204, 136, 0.2);
+}
+
+.input[type='password'] {
+  font-family: 'Password', monospace;
+}
+
+.customConfig {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.customConfig .input {
+  flex: 1;
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  background-color: #00cc88;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  box-shadow: 0 4px 10px rgba(0, 204, 136, 0.2);
+}
+
+.submitBtn:hover {
+  background-color: #00a87a;
+}
+
+.submitBtn:active {
+  transform: translateY(1px);
+}
+
+.submitBtn:disabled {
+  background-color: #a0a0a0;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.taskList {
+  width: 100%;
+  margin-top: 2rem;
+}
+
+.taskItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  font-size: 1rem;
+  font-family: monospace;
+}
+
+.taskItem.success {
+  background-color: #e6f7ec;
+  border: 1px solid #00cc88;
+}
+
+.taskItem.failed {
+  background-color: #fbe6e6;
+  border: 1px solid #e74c3c;
+}
+
+.taskItem.processing {
+  background-color: #fcf4e6;
+  border: 1px solid #f39c12;
+}
+
+.taskItem.pending {
+  background-color: #e6f1f7;
+  border: 1px solid #3498db;
+}
+
+.taskId {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.taskStatus {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.taskLink {
+  color: #007bff;
+  text-decoration: none;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+
+.taskLink:hover {
+  text-decoration: underline;
+  color: #0056b3;
+}
+
+.errorMsg {
+  color: #e74c3c;
+  font-weight: 500;
+}
+
+.processing {
+  color: #f39c12;
+  font-weight: 500;
+}
+
+.pending {
+  color: #3498db;
+  font-weight: 500;
+}

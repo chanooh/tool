@@ -1,0 +1,216 @@
+/* InputDataGenerator.module.css */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f0f2f5;
+}
+
+
+.main {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: #7f8c8d;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.section {
+  width: 100%;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 2.5rem;
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #34495e;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #ecf0f1;
+  padding-bottom: 1rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.5rem;
+}
+
+.label {
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 0.5rem;
+}
+
+.input,
+.textarea,
+.chain-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fdfdfd;
+  color: #333;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.input:focus,
+.textarea:focus,
+.chain-select:focus {
+  outline: none;
+  border-color: #00cc88;
+  box-shadow: 0 0 0 3px rgba(0, 204, 136, 0.2);
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  background-color: #00cc88;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  box-shadow: 0 4px 10px rgba(0, 204, 136, 0.2);
+}
+
+.submitBtn:hover {
+  background-color: #00a87a;
+}
+
+.submitBtn:active {
+  transform: translateY(1px);
+}
+
+.submitBtn:disabled {
+  background-color: #a0a0a0;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.outputSection {
+  margin-top: 2rem;
+}
+
+.outputData {
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #2c3e50;
+  background-color: #f0f0f0;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.errorMsg {
+  color: #e74c3c;
+  font-weight: 500;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+/* Specific styles for the parameter list */
+.parameterList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.parameterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  border-bottom: 1px dashed #e0e0e0;
+  padding-bottom: 1.5rem;
+}
+
+.parameterRow:last-child {
+  border-bottom: none;
+}
+
+.inputGroup {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+}
+
+.addButton, .removeButton {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.addButton {
+  background-color: #e0f5e2;
+  color: #00cc88;
+  border: 1px solid #00cc88;
+}
+
+.addButton:hover {
+  background-color: #c0ebd0;
+}
+
+.removeButton {
+  background-color: #fbe6e6;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+}
+
+.removeButton:hover {
+  background-color: #f7d2d2;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .parameterRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .parameterRow .removeButton {
+    width: 100%;
+    margin-top: 1rem;
+  }
+
+  .addButton {
+    width: 100%;
+  }
+
+  .main {
+    padding: 1rem;
+  }
+}
