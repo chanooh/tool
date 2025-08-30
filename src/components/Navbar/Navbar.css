@@ -1,27 +1,90 @@
-.nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    padding: 1rem 2rem;
-
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #f9f9f9; /* 浅色背景 */
+  color: #333; /* 深色字体 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
+  border-bottom: 1px solid #e0e0e0; /* 底部边框 */
 }
 
-.left {
-    display: flex;
-    align-items: center;
-
-    gap: 2rem;
-}
-
-.right{
-    display: flex;
-    align-items: center;
+.navbar-left {
+  display: flex;
+  align-items: center;
 }
 
 .logo {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #000000;
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: #2c3e50; /* 颜色深一些，易于阅读 */
+  margin-right: 2rem;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.navbar-link {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  transition: color 0.3s ease;
+  padding: 0.5rem 1rem; /* 增加点击区域 */
+  border-radius: 8px;
+}
+
+.navbar-link:hover {
+  color: #00cc88; /* 悬停时颜色变化 */
+  background-color: #e0f5e2; /* 悬停背景色 */
+}
+
+.navbar-right {
+  display: flex;
+  gap: 1rem;
+}
+
+.github-link,
+.other-link {
+  font-size: 1.2rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #333;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: color 0.3s ease;
+}
+
+.github-link:hover,
+.other-link:hover {
+  color: #00cc88; /* 悬停时的颜色 */
+  background-color: #e0f5e2; /* 悬停背景色 */
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
   }
+
+  .navbar-left {
+    margin-bottom: 1rem;
+  }
+
+  .navbar-links {
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .navbar-link {
+    font-size: 1rem;
+  }
+
+  .navbar-right {
+    margin-top: 1rem;
+  }
+}

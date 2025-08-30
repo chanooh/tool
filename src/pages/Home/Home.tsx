@@ -1,8 +1,7 @@
-import './Home.css';
-import { Navbar } from '../../components/Navbar/Navbar';
 import { useState } from 'react';
 import { ethers } from 'ethers';
 import { transfer, approveToken } from '../../utils';
+import styles from './Home.module.css';
 
 interface ChainConfig {
   rpc: string;
@@ -224,7 +223,7 @@ export default function Home() {
         ? customTokenAddress 
         : TOKEN_ADDRESSES[selectedChain]?.[tokenType];
 
-      if (!tokenAddress && tokenType !== 'custom') {
+      if (!tokenAddress) {
         throw new Error(`Token ${tokenType} not supported on ${selectedChain}`);
       }
 
@@ -249,129 +248,149 @@ export default function Home() {
     }
   };
 
+  const getExplorerUrl = (hash: string) => {
+    switch (selectedChain) {
+      case 'eth':
+        return `https://etherscan.io/tx/${hash}`;
+      case 'bsc':
+        return `https://bscscan.com/tx/${hash}`;
+      case 'base':
+        return `https://basescan.org/tx/${hash}`;
+      default:
+        return '#';
+    }
+  };
+
   return (
-    <div className="container">
-      <div className='navigation'>
-        <Navbar />
-      </div>
+    <div className={styles['main-container']}>
 
-      <div className='main'>
-        <h1 className='title'>批量调用合约</h1>
+      <div className={styles['content-wrapper']}>
+        <h1 className={styles.title}>批量调用合约</h1>
+        <p className={styles.subtitle}>执行批量转账或代币授权</p>
 
-        <div className='config-section'>
-          <div className='chain-config'>
-            <label>区块链网络:</label>
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>网络配置</h2>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>区块链网络:</label>
             <select 
               value={selectedChain}
               onChange={handleChainChange}
-              className="chain-select"
+              className={styles.input}
             >
               <option value="eth">Ethereum</option>
               <option value="bsc">BNB Chain</option>
               <option value="base">Base</option>
               <option value="custom">自定义网络</option>
             </select>
-
-            {selectedChain === 'custom' && (
-              <div className="custom-config">
-                <input
-                  type="text"
-                  placeholder="RPC URL"
-                  value={customRpc}
-                  onChange={(e) => setCustomRpc(e.target.value)}
-                  onBlur={updateCustomConfig}
-                />
-                <input
-                  type="number"
-                  placeholder="Chain ID"
-                  value={customChainId}
-                  onChange={(e) => setCustomChainId(e.target.value)}
-                  onBlur={updateCustomConfig}
-                />
-              </div>
-            )}
-
-            <div className='input-group'>
-              <label>转账模式:</label>
-              <select value={mode} onChange={(e) => setMode(e.target.value as any)} className="chain-select">
-                <option value="fromOneToMany">一个私钥转多个地址</option>
-                <option value="fromManyToOne">多个私钥转一个地址</option>
-              </select>
-            </div>
-
-            {mode === 'fromOneToMany' ? (
-              <>
-                <div className='input-group'>
-                  <label>发送方私钥:</label>
-                  <input
-                    type="password"
-                    value={privateKey}
-                    onChange={(e) => setPrivateKey(e.target.value)}
-                    placeholder="0x开头64位"
-                  />
-                </div>
-
-                <div className='input-group'>
-                  <label>接收地址列表 (每行一个):</label>
-                  <textarea
-                    value={addressList}
-                    onChange={(e) => setAddressList(e.target.value)}
-                    rows={6}
-                    placeholder="0x1234...\n0xabcd..."
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div className='input-group'>
-                  <label>多个发送方私钥 (每行一个):</label>
-                  <textarea
-                    value={multiPrivateKeys}
-                    onChange={(e) => setMultiPrivateKeys(e.target.value)}
-                    rows={6}
-                    placeholder="0xabc...\n0xdef..."
-                  />
-                </div>
-
-                <div className='input-group'>
-                  <label>接收地址:</label>
-                  <input
-                    value={targetAddress}
-                    onChange={(e) => setTargetAddress(e.target.value)}
-                    placeholder="0x..."
-                  />
-                </div>
-              </>
-            )}
           </div>
+
+          {selectedChain === 'custom' && (
+            <div className={styles.customConfig}>
+              <input
+                className={styles.input}
+                type="text"
+                placeholder="RPC URL"
+                value={customRpc}
+                onChange={(e) => setCustomRpc(e.target.value)}
+                onBlur={updateCustomConfig}
+              />
+              <input
+                className={styles.input}
+                type="number"
+                placeholder="Chain ID"
+                value={customChainId}
+                onChange={(e) => setCustomChainId(e.target.value)}
+                onBlur={updateCustomConfig}
+              />
+            </div>
+          )}
         </div>
 
-        <div className='batch-section'>
-          <div className='params-group'>
-            <div className='input-group'>
-              <label>转账金额 (ETH):</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                step="0.001"
-              />
-            </div>
-
-            <div className='input-group'>
-              <label>调用数据 (Hex):</label>
-              <input
-                value={hexData}
-                onChange={(e) => setHexData(e.target.value)}
-                placeholder="0x..."
-              />
-            </div>
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>批量转账</h2>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>转账模式:</label>
+            <select value={mode} onChange={(e) => setMode(e.target.value as any)} className={styles.input}>
+              <option value="fromOneToMany">一个私钥转多个地址</option>
+              <option value="fromManyToOne">多个私钥转一个地址</option>
+            </select>
           </div>
 
+          {mode === 'fromOneToMany' ? (
+            <>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>发送方私钥:</label>
+                <input
+                  className={styles.input}
+                  type="password"
+                  value={privateKey}
+                  onChange={(e) => setPrivateKey(e.target.value)}
+                  placeholder="0x开头64位"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>接收地址列表 (每行一个):</label>
+                <textarea
+                  className={styles.textarea}
+                  value={addressList}
+                  onChange={(e) => setAddressList(e.target.value)}
+                  rows={6}
+                  placeholder="0x1234...\n0xabcd..."
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>多个发送方私钥 (每行一个):</label>
+                <textarea
+                  className={styles.textarea}
+                  value={multiPrivateKeys}
+                  onChange={(e) => setMultiPrivateKeys(e.target.value)}
+                  rows={6}
+                  placeholder="0xabc...\n0xdef..."
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>接收地址:</label>
+                <input
+                  className={styles.input}
+                  value={targetAddress}
+                  onChange={(e) => setTargetAddress(e.target.value)}
+                  placeholder="0x..."
+                />
+              </div>
+            </>
+          )}
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>转账金额 (ETH):</label>
+            <input
+              className={styles.input}
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              step="0.001"
+              placeholder='0.01'
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>调用数据 (Hex):</label>
+            <input
+              className={styles.input}
+              value={hexData}
+              onChange={(e) => setHexData(e.target.value)}
+              placeholder="0x..."
+            />
+          </div>
+          
           <button 
-            className='submit-btn'
+            className={styles.submitBtn}
             onClick={handleBatchTransfer}
-            disabled={tasks.some(t => t.status === 'processing')}
+            disabled={tasks.some(t => t.status === 'processing') || (mode === 'fromOneToMany' && (!privateKey || !addressList || !amount)) || (mode === 'fromManyToOne' && (!multiPrivateKeys || !targetAddress || !amount))}
           >
             {tasks.some(t => t.status === 'processing') 
               ? `处理中 (${tasks.filter(t => t.status === 'processing').length}/${tasks.length})`
@@ -379,57 +398,58 @@ export default function Home() {
           </button>
         </div>
 
-        <div className='batch-section'>
-          <h2>代币无限授权</h2>
-          <div className='params-group'>
-            <div className='input-group'>
-              <label>发送方私钥:</label>
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>代币无限授权</h2>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>发送方私钥:</label>
+            <input
+              className={styles.input}
+              type="password"
+              value={privateKey}
+              onChange={(e) => setPrivateKey(e.target.value)}
+              placeholder="0x开头64位"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>代币类型:</label>
+            <select
+              value={tokenType}
+              onChange={(e) => setTokenType(e.target.value as any)}
+              className={styles.input}
+            >
+              <option value="USDT">USDT</option>
+              <option value="USDC">USDC</option>
+              <option value="custom">自定义代币</option>
+            </select>
+          </div>
+
+          {tokenType === 'custom' && (
+            <div className={styles.formGroup}>
+              <label className={styles.label}>自定义代币地址:</label>
               <input
-                type="password"
-                value={privateKey}
-                onChange={(e) => setPrivateKey(e.target.value)}
-                placeholder="0x开头64位"
-              />
-            </div>
-
-            <div className='input-group'>
-              <label>代币类型:</label>
-              <select
-                value={tokenType}
-                onChange={(e) => setTokenType(e.target.value as any)}
-                className="chain-select"
-              >
-                <option value="USDT">USDT</option>
-                <option value="USDC">USDC</option>
-                <option value="custom">自定义代币</option>
-              </select>
-            </div>
-
-            {tokenType === 'custom' && (
-              <div className='input-group'>
-                <label>自定义代币地址:</label>
-                <input
-                  value={customTokenAddress}
-                  onChange={(e) => setCustomTokenAddress(e.target.value)}
-                  placeholder="0x..."
-                />
-              </div>
-            )}
-
-            <div className='input-group'>
-              <label>授权目标合约地址:</label>
-              <input
-                value={spenderAddress}
-                onChange={(e) => setSpenderAddress(e.target.value)}
+                className={styles.input}
+                value={customTokenAddress}
+                onChange={(e) => setCustomTokenAddress(e.target.value)}
                 placeholder="0x..."
               />
             </div>
+          )}
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>授权目标合约地址:</label>
+            <input
+              className={styles.input}
+              value={spenderAddress}
+              onChange={(e) => setSpenderAddress(e.target.value)}
+              placeholder="0x..."
+            />
           </div>
 
           <button
-            className='submit-btn'
+            className={styles.submitBtn}
             onClick={handleTokenApproval}
-            disabled={tasks.some(t => t.status === 'processing')}
+            disabled={tasks.some(t => t.status === 'processing') || !privateKey || !spenderAddress || (tokenType === 'custom' && !customTokenAddress)}
           >
             {tasks.some(t => t.status === 'processing')
               ? '处理中...'
@@ -437,25 +457,30 @@ export default function Home() {
           </button>
         </div>
 
-        <div className='task-list'>
+        <div className={styles.taskList}>
+          {tasks.length > 0 && <h2 className={styles.sectionTitle}>任务状态</h2>}
           {tasks.map((task, index) => (
-            <div key={index} className={`task-item ${task.status}`}>
-              <span className='task-id'>任务 #{index + 1}</span>
-              <div className='task-status'>
+            <div key={index} className={`${styles.taskItem} ${styles[task.status]}`}>
+              <span className={styles.taskId}>任务 #{index + 1}</span>
+              <div className={styles.taskStatus}>
                 {task.status === 'success' && task.hash && (
                   <a 
-                    href={`https://${selectedChain === 'bsc' ? 'bscscan.com' : selectedChain === 'base' ? 'basescan.org' : 'etherscan.io'}/tx/${task.hash}`}
+                    href={getExplorerUrl(task.hash)}
                     target="_blank"
                     rel="noopener noreferrer"
+                    className={styles.taskLink}
                   >
-                    查看交易
+                    查看交易 ↗️
                   </a>
                 )}
                 {task.status === 'failed' && (
-                  <span className='error-msg'>{task.error}</span>
+                  <span className={styles.errorMsg}>❌ {task.error}</span>
                 )}
                 {task.status === 'processing' && (
-                  <span className='processing'>等待确认...</span>
+                  <span className={styles.processing}>⏳ 等待确认...</span>
+                )}
+                {task.status === 'pending' && (
+                  <span className={styles.pending}>⌛ 待处理...</span>
                 )}
               </div>
             </div>

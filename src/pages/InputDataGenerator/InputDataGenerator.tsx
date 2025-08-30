@@ -1,8 +1,6 @@
-import './InputDataGenerator.css';
-import { Navbar } from '../../components/Navbar/Navbar';
 import { useState } from 'react';
-// import { ethers } from 'ethers';
 import { encodeFunctionData, EncodeFunctionDataParams } from '../../utils';
+import styles from './InputDataGenerator.module.css';
 
 interface Parameter {
   type: string;
@@ -15,9 +13,9 @@ export default function InputDataGenerator() {
   const [functionName, setFunctionName] = useState('buy');
   const [parameters, setParameters] = useState<Parameter[]>([
     { type: 'uint256', value: '300', unit: 'ether' },
-    { type: 'address', value: '' },
+    { type: 'address', value: '0x1234567890123456789012345678901234567890' },
     { type: 'uint256', value: '0', unit: 'wei' },
-    { type: 'uint256', value: '2025-08-19 18:24:20', unit: 'datetime' }
+    { type: 'uint256', value: new Date().toISOString().slice(0, 19).replace('T', ' '), unit: 'datetime' }
   ]);
   
   const [generatedInputData, setGeneratedInputData] = useState('');
@@ -64,45 +62,45 @@ export default function InputDataGenerator() {
   };
 
   return (
-    <div className="container">
-      <div className='navigation'>
-        <Navbar />
-      </div>
+    <div className={styles.container}>
 
-      <div className='main'>
-        <h1 className='title'>生成 Input Data</h1>
+      <div className={styles.main}>
+        <h1 className={styles.title}>生成 Input Data</h1>
+        <p className={styles.subtitle}>根据函数ABI和参数，生成合约调用的十六进制数据</p>
 
-        <div className='batch-section'>
-          <div className='params-group'>
-            <div className='input-group'>
-              <label>合约 ABI (JSON 格式):</label>
-              <textarea
-                value={abiInput}
-                onChange={(e) => setAbiInput(e.target.value)}
-                rows={4}
-                placeholder='["function buy(uint256 _itemId, uint256 _quantity, address _paymentToken, uint256 _paymentAmount)"]'
-              />
-            </div>
-
-            <div className='input-group'>
-              <label>函数名称:</label>
-              <input
-                value={functionName}
-                onChange={(e) => setFunctionName(e.target.value)}
-                placeholder="buy"
-              />
-            </div>
+        <div className={styles.section}>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>合约 ABI (JSON 格式):</label>
+            <textarea
+              className={styles.textarea}
+              value={abiInput}
+              onChange={(e) => setAbiInput(e.target.value)}
+              rows={4}
+              placeholder='["function buy(uint256 _itemId, uint256 _quantity, address _paymentToken, uint256 _paymentAmount)"]'
+            />
           </div>
 
-          <h3>参数</h3>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>函数名称:</label>
+            <input
+              className={styles.input}
+              value={functionName}
+              onChange={(e) => setFunctionName(e.target.value)}
+              placeholder="buy"
+            />
+          </div>
+        </div>
+        
+        <div className={`${styles.section} ${styles.parameterList}`}>
+          <h2 className={styles.sectionTitle}>函数参数</h2>
           {parameters.map((param, index) => (
-            <div key={index} className='params-group'>
-              <div className='input-group'>
-                <label>类型:</label>
+            <div key={index} className={styles.parameterRow}>
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>类型:</label>
                 <select
+                  className={styles.input}
                   value={param.type}
                   onChange={(e) => updateParameter(index, 'type', e.target.value)}
-                  className="chain-select"
                 >
                   <option value="uint256">uint256</option>
                   <option value="int256">int256</option>
@@ -112,34 +110,39 @@ export default function InputDataGenerator() {
                 </select>
               </div>
 
-              <div className='input-group'>
-                <label>值:</label>
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>值:</label>
                 <input
+                  className={styles.input}
                   value={param.value}
                   onChange={(e) => updateParameter(index, 'value', e.target.value)}
-                  placeholder={param.type === 'address' ? '0x...' : param.type === 'bool' ? 'true/false' : '值'}
+                  placeholder={
+                    param.type === 'address' ? '0x...' :
+                    param.type === 'bool' ? 'true/false' :
+                    '参数值'
+                  }
                 />
               </div>
 
               {['uint256', 'int256'].includes(param.type) && (
-                <div className='input-group'>
-                  <label>单位:</label>
+                <div className={styles.inputGroup}>
+                  <label className={styles.label}>单位:</label>
                   <select
+                    className={styles.input}
                     value={param.unit || 'wei'}
                     onChange={(e) => updateParameter(index, 'unit', e.target.value)}
-                    className="chain-select"
                   >
                     <option value="wei">Wei</option>
                     <option value="gwei">Gwei</option>
                     <option value="ether">Ether</option>
-                    <option value="datetime">Datetime (YYYY-MM-DD HH:mm:ss)</option>
+                    <option value="datetime">Datetime</option>
                   </select>
                 </div>
               )}
-
+              
               <button
+                className={styles.removeButton}
                 onClick={() => removeParameter(index)}
-                style={{ marginLeft: '10px', padding: '8px', background: '#ff4757', color: 'white', border: 'none', borderRadius: '8px' }}
               >
                 删除
               </button>
@@ -147,35 +150,35 @@ export default function InputDataGenerator() {
           ))}
 
           <button
+            className={styles.addButton}
             onClick={addParameter}
-            style={{ marginTop: '10px', padding: '8px', background: '#00cc88', color: 'white', border: 'none', borderRadius: '8px' }}
           >
             添加参数
           </button>
-
-          <button
-            className='submit-btn'
-            onClick={handleGenerateInputData}
-            style={{ marginTop: '20px' }}
-          >
-            生成 Input Data
-          </button>
-
-          {generatedInputData && (
-            <div className='input-group'>
-              <label>生成的 Input Data:</label>
-              <textarea
-                value={generatedInputData}
-                readOnly
-                rows={3}
-              />
-            </div>
-          )}
-
-          {inputDataError && (
-            <p style={{ color: '#ff4757' }}>{inputDataError}</p>
-          )}
         </div>
+
+        <button
+          className={styles.submitBtn}
+          onClick={handleGenerateInputData}
+        >
+          生成 Input Data
+        </button>
+
+        {generatedInputData && (
+          <div className={`${styles.section} ${styles.outputSection}`}>
+            <h2 className={styles.sectionTitle}>生成的 Input Data</h2>
+            <textarea
+              className={styles.outputData}
+              value={generatedInputData}
+              readOnly
+              rows={3}
+            />
+          </div>
+        )}
+
+        {inputDataError && (
+          <p className={styles.errorMsg}>❌ {inputDataError}</p>
+        )}
       </div>
     </div>
   );
